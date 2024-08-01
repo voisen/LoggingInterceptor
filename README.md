@@ -19,6 +19,7 @@ Usage
 val client = OkHttpClient.Builder()
     client.addInterceptor(LoggingInterceptor.Builder()
              .setLevel(Level.BASIC)
+             .maxLogBytes(102400) //限制最大输出字节大小
              .log(VERBOSE)
              .addHeader("cityCode","53")
              .addQueryParam("moonStatus", "crescent")

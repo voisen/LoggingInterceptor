@@ -53,9 +53,19 @@ class Printer private constructor() {
             if (builder.logger == null) I.log(builder.type, tag, END_LINE, builder.isLogHackEnable)
         }
 
-        fun printJsonResponse(builder: LoggingInterceptor.Builder, chainMs: Long, isSuccessful: Boolean,
-                              code: Int, headers: Headers, response: Response, segments: List<String>, message: String, responseUrl: String) {
-            val responseBody = LINE_SEPARATOR + BODY_TAG + LINE_SEPARATOR + getResponseBody(response)
+        fun printJsonResponse(
+            builder: LoggingInterceptor.Builder,
+            chainMs: Long,
+            isSuccessful: Boolean,
+            code: Int,
+            headers: Headers,
+            response: Response,
+            segments: List<String>,
+            message: String,
+            responseUrl: String,
+            maxLogBytes: Int
+        ) {
+            val responseBody = LINE_SEPARATOR + BODY_TAG + LINE_SEPARATOR + getResponseBody(response, maxLogBytes)
             val tag = builder.getTag(false)
             val urlLine = arrayOf(URL_TAG + responseUrl, N)
             val responseString = getResponse(headers, chainMs, code, isSuccessful,
@@ -74,7 +84,7 @@ class Printer private constructor() {
             }
         }
 
-        private fun getResponseBody(response: Response): String {
+        private fun getResponseBody(response: Response, maxLogBytes: Int): String {
             val responseBody = response.body!!
             val headers = response.headers
             val contentLength = responseBody.contentLength()
@@ -83,35 +93,40 @@ class Printer private constructor() {
             } else if (bodyHasUnknownEncoding(response.headers)) {
                 return "encoded body omitted"
             } else {
-                val source = responseBody.source()
-                source.request(Long.MAX_VALUE) // Buffer the entire body.
-                var buffer = source.buffer
-
-                var gzippedLength: Long? = null
-                if ("gzip".equals(headers["Content-Encoding"], ignoreCase = true)) {
-                    gzippedLength = buffer.size
-                    GzipSource(buffer.clone()).use { gzippedResponseBody ->
-                        buffer = Buffer()
-                        buffer.writeAll(gzippedResponseBody)
+                if (contentLength > maxLogBytes){
+                    return "End request - The body too large(>${maxLogBytes}), content length: $contentLength"
+                }
+                try {
+                    val source = responseBody.source()
+                    source.request(maxLogBytes + 128L) // Buffer the entire body.
+                    var buffer = source.buffer
+                    if (buffer.size > maxLogBytes){
+                        return "End request - The body too large(>${maxLogBytes}), content length: $contentLength"
                     }
-                }
-
-                val contentType = responseBody.contentType()
-                val charset: Charset = contentType?.charset(StandardCharsets.UTF_8)
+                    var gzippedLength: Long? = null
+                    if ("gzip".equals(headers["Content-Encoding"], ignoreCase = true)) {
+                        gzippedLength = buffer.size
+                        GzipSource(buffer.clone()).use { gzippedResponseBody ->
+                            buffer = Buffer()
+                            buffer.writeAll(gzippedResponseBody)
+                        }
+                    }
+                    val contentType = responseBody.contentType()
+                    val charset: Charset = contentType?.charset(StandardCharsets.UTF_8)
                         ?: StandardCharsets.UTF_8
-
-                if (!buffer.isProbablyUtf8()) {
-                    return "End request - binary ${buffer.size}:byte body omitted"
-                }
-
-                if (contentLength != 0L) {
-                    return getJsonString(buffer.clone().readString(charset))
-                }
-
-                return if (gzippedLength != null) {
-                    "End request - ${buffer.size}:byte, $gzippedLength-gzipped-byte body"
-                } else {
-                    "End request - ${buffer.size}:byte body"
+                    if (!buffer.isProbablyUtf8()) {
+                        return "End request - binary ${contentLength}:byte body omitted"
+                    }
+                    if (contentLength != 0L) {
+                        return getJsonString(buffer.clone().readString(charset))
+                    }
+                    return if (gzippedLength != null) {
+                        "End request - ${buffer.size}:byte, $gzippedLength-gzipped-byte body"
+                    } else {
+                        "End request - ${buffer.size}:byte body"
+                    }
+                }catch (e: Throwable){
+                    return "End request - $contentLength :byte body"
                 }
             }
         }

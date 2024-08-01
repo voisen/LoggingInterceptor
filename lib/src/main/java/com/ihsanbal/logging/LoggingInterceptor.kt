@@ -33,11 +33,16 @@ class LoggingInterceptor private constructor(private val builder: Builder) : Int
         }
         val receivedMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNs)
 
-        printlnResponseLog(receivedMs, response, request)
+        printlnResponseLog(receivedMs, response, request, builder.maxLogBytes)
         return response
     }
 
-    private fun printlnResponseLog(receivedMs: Long, response: Response, request: Request) {
+    private fun printlnResponseLog(
+        receivedMs: Long,
+        response: Response,
+        request: Request,
+        maxLogBytes: Int
+    ) {
         Printer.printJsonResponse(
                 builder,
                 receivedMs,
@@ -47,7 +52,8 @@ class LoggingInterceptor private constructor(private val builder: Builder) : Int
                 response,
                 request.url.encodedPathSegments,
                 response.message,
-                request.url.toString())
+                request.url.toString(),
+                maxLogBytes)
     }
 
     private fun printlnRequestLog(request: Request) {
@@ -106,6 +112,7 @@ class LoggingInterceptor private constructor(private val builder: Builder) : Int
         var isMockEnabled = false
         var sleepMs: Long = 0
         var listener: BufferListener? = null
+        var maxLogBytes: Int = 102400
 
         /**
          * @param level set log level
@@ -155,6 +162,11 @@ class LoggingInterceptor private constructor(private val builder: Builder) : Int
         fun tag(tag: String): Builder {
             TAG = tag
             return this
+        }
+
+        fun maxLogBytes(max: Int): Builder{
+            maxLogBytes = max;
+            return this;
         }
 
         /**

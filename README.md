@@ -9,7 +9,7 @@ LoggingInterceptor - Interceptor for [OkHttp3](https://github.com/square/okhttp)
 [![SwaggerUI](https://img.shields.io/badge/Swagger-mockable.io-orange.svg?style=flat-square)](https://www.mockable.io/swagger/index.html?url=https%3A%2F%2Fdemo2961085.mockable.io%3Fopenapi#!/demo2961085)
 
 <p align="center">
-    <img src="https://github.com/ihsanbal/LoggingInterceptor/blob/master/images/logcat.png"/>
+    <img src="https://github.com/voisen/LoggingInterceptor/blob/master/images/logcat.png"/>
 </p>
 
 Usage
@@ -55,7 +55,7 @@ allprojects {
 
 
 dependencies {
-	implementation("com.github.ihsanbal:LoggingInterceptor:3.1.0") {
+	implementation("com.github.voisen:LoggingInterceptor:3.1.2") {
         	exclude(group = "org.json", module = "json")
     	}
 }
@@ -70,9 +70,9 @@ Maven:
 </repository>
 
 <dependency>
-    <groupId>com.github.ihsanbal</groupId>
+    <groupId>com.github.voisen</groupId>
     <artifactId>LoggingInterceptor</artifactId>
-    <version>3.1.0</version>
+    <version>3.1.2</version>
 </dependency>
 ```
 
